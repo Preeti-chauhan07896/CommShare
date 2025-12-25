@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Browse Items - CommShare</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 55%),
+        radial-gradient(circle at bottom right, rgba(249, 115, 22, 0.18), transparent 55%),
+        linear-gradient(135deg, #020617 0%, #020617 45%, #111827 100%);
+      color: #0f172a;
+    }
+
+    /* Glassmorphism header + nav links aligned with landing page */
+    .glass-header {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 18px 50px rgba(15, 23, 42, 0.25);
+    }
+
+    .nav-link {
+      position: relative;
+      padding: 0.5rem 1rem;
+      border-radius: 9999px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: #334155;
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .nav-link::after {
+      content: "";
+      position: absolute;
+      left: 1rem;
+      right: 1rem;
+      bottom: 0.35rem;
+      height: 3px;
+      border-radius: 9999px;
+      background: linear-gradient(90deg, #06b6d4, #22c55e, #f97316);
+      transform-origin: center;
+      transform: scaleX(0);
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      opacity: 0.9;
+    }
+
+    .nav-link:hover {
+      color: #0f172a;
+      background: rgba(15, 23, 42, 0.04);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+    }
+
+    .nav-link:hover::after {
+      transform: scaleX(1);
+    }
+
+    /* Decorative glowing orbs behind content */
+    .page-orb {
+      position: absolute;
+      border-radius: 9999px;
+      filter: blur(32px);
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .page-orb.teal {
+      width: 260px;
+      height: 260px;
+      background: radial-gradient(circle, rgba(45, 212, 191, 0.55), transparent 60%);
+      top: -60px;
+      right: 5%;
+    }
+
+    .page-orb.orange {
+      width: 260px;
+      height: 260px;
+      background: radial-gradient(circle, rgba(249, 115, 22, 0.5), transparent 60%);
+      bottom: -80px;
+      left: 3%;
+    }
+
+    /* Search + filters panel */
+    .search-container {
+      background: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(22px);
+      box-shadow: 0 24px 70px rgba(15, 23, 42, 0.35);
+      border-radius: 1.75rem;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      animation: fadeInUp 0.65s ease-out both;
+    }
+
+    .search-container input[type="text"],
+    .search-container select {
+      border-radius: 0.9rem;
+      border-color: rgba(148, 163, 184, 0.8);
+      box-shadow: 0 0 0 0 rgba(45, 212, 191, 0.0);
+      transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.15s ease;
+    }
+
+    .search-container input[type="text"]:focus,
+    .search-container select:focus {
+      border-color: #14b8a6;
+      box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.35);
+      transform: translateY(-1px);
+    }
+
+    .search-container button {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .search-container button::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, rgba(255, 255, 255, 0.25), transparent 60%);
+      transform: translateX(-120%);
+      transition: transform 0.45s ease;
+    }
+
+    .search-container button:hover::before {
+      transform: translateX(120%);
+    }
+
+    /* Item cards grid */
+    .item-card {
+      background: rgba(255, 255, 255, 0.98);
+      border-radius: 1.15rem;
+      overflow: hidden;
+      border: 1px solid rgba(226, 232, 240, 0.9);
+      transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.25s ease;
+      transform-origin: center;
+    }
+
+    .item-card:hover {
+      transform: translateY(-6px) scale(1.02);
+      border-color: rgba(45, 212, 191, 0.7);
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.3);
+    }
+
+    .item-card img {
+      transition: transform 0.4s ease;
+    }
+
+    .item-card:hover img {
+      transform: scale(1.05);
+    }
+
+    /* Loading + empty states */
+    #loadingIndicator .animate-spin {
+      border-color: rgba(248, 250, 252, 0.4);
+      border-top-color: #22c55e;
+    }
+
+    #noResults i {
+      animation: subtleFloat 3s ease-in-out infinite;
+    }
+
+    /* Simple micro-animations */
+    @keyframes fadeInUp {
+      0% {
+        opacity: 0;
+        transform: translateY(18px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes subtleFloat {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-6px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="glass-header sticky top-0 z-50">
+    <nav class="container mx-auto px-6 py-4">
+      <div class="flex items-center justify-between">
+        <a href="index1.html" class="text-2xl font-extrabold tracking-tight text-teal-600">CommShare</a>
+        <div class="flex items-center gap-2 md:gap-4">
+          <a href="index1.html" class="nav-link">Home</a>
+          <a href="main.html" class="nav-link">Browse</a>
+          <a href="add-item.html" class="nav-link">Lend Item</a>
+          <a href="profile.html" class="nav-link">Profile</a>
+          <button id="logoutBtn" class="ml-2 bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-600 transition shadow-md">
+            Logout
+          </button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <!-- background decorative orbs -->
+  <div class="page-orb teal"></div>
+  <div class="page-orb orange"></div>
+
+  <!-- Main Container -->
+  <div class="container mx-auto px-6 py-8">
+    <!-- Search Section -->
+    <div class="search-container rounded-2xl p-8 mb-8 shadow-2xl">
+      <h1 class="text-3xl font-bold text-gray-800 mb-6">Find Items Near You</h1>
+      
+      <!-- Location Options -->
+      <div class="mb-6">
+        <label class="block text-gray-700 font-semibold mb-3">Choose Location Method:</label>
+        <div class="flex gap-4">
+          <button id="useMyLocationBtn" class="flex-1 bg-teal-500 text-white py-3 px-6 rounded-lg hover:bg-teal-600 transition font-semibold">
+            <i class="fas fa-location-crosshairs mr-2"></i> Use My Location
+          </button>
+          <button id="manualLocationBtn" class="flex-1 bg-gray-500 text-white py-3 px-6 rounded-lg hover:bg-gray-600 transition font-semibold">
+            <i class="fas fa-map-marker-alt mr-2"></i> Enter Address
+          </button>
+        </div>
+      </div>
+
+      <!-- Manual Location Input (Hidden by default) -->
+      <div id="manualLocationInput" class="mb-6 hidden">
+        <label class="block text-gray-700 font-semibold mb-2">Enter Location:</label>
+        <div class="flex gap-2">
+          <input type="text" id="manualAddress" placeholder="Enter city or address..." 
+            class="flex-1 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500">
+          <button id="geocodeBtn" class="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition">
+            <i class="fas fa-search"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Current Location Display -->
+      <div id="locationDisplay" class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg hidden">
+        <p class="text-green-800">
+          <i class="fas fa-check-circle mr-2"></i>
+          <span id="locationText">Location detected</span>
+        </p>
+      </div>
+
+      <!-- Search Input -->
+      <div class="mb-6">
+        <label class="block text-gray-700 font-semibold mb-2">What are you looking for?</label>
+        <div class="flex gap-2">
+          <input type="text" id="searchInput" placeholder="Search for camera, drill, bicycle..." 
+            class="flex-1 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500">
+          <button id="searchBtn" class="bg-teal-600 text-white px-8 py-3 rounded-lg hover:bg-teal-700 transition font-bold">
+            <i class="fas fa-search mr-2"></i> Search
+          </button>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-gray-700 font-semibold mb-2">Category:</label>
+          <select id="categoryFilter" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500">
+            <option value="">All Categories</option>
+            <option value="Electronics">Electronics</option>
+            <option value="Tools">Tools</option>
+            <option value="Sports">Sports</option>
+            <option value="Books">Books</option>
+            <option value="Appliances">Appliances</option>
+            <option value="Vehicles">Vehicles</option>
+            <option value="Others">Others</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-gray-700 font-semibold mb-2">Radius (km):</label>
+          <select id="radiusFilter" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500">
+            <option value="5">5 km</option>
+            <option value="10">10 km</option>
+            <option value="25">25 km</option>
+            <option value="50" selected>50 km</option>
+            <option value="100">100 km</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-gray-700 font-semibold mb-2">Sort By:</label>
+          <select id="sortFilter" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500">
+            <option value="distance">Distance</option>
+            <option value="price-low">Price: Low to High</option>
+            <option value="price-high">Price: High to Low</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="loadingIndicator" class="text-center py-8 hidden">
+      <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+      <p class="text-white mt-4">Loading items...</p>
+    </div>
+
+    <!-- Results Count -->
+    <div id="resultsCount" class="text-white text-lg mb-4 hidden">
+      <span id="itemCount">0</span> items found
+    </div>
+
+    <!-- Items Grid -->
+    <div id="itemsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <!-- Items will be loaded here dynamically -->
+    </div>
+
+    <!-- No Results Message -->
+    <div id="noResults" class="text-center py-12 hidden">
+      <i class="fas fa-search text-white text-6xl mb-4 opacity-50"></i>
+      <p class="text-white text-xl">No items found. Try adjusting your search or location.</p>
+    </div>
+  </div>
+
+  <script src="./js/main.js"></script>
+</body>
+</html>
